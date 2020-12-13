@@ -1,0 +1,2 @@
+require("autoCreateRecipes")
+createRecuclingRecipesList()
