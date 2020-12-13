@@ -1,12 +1,12 @@
 {
   "name": "auxiliary-mechanisms",
-  "version": "0.0.10",
-  "factorio_version": "0.17",
+  "version": "1.0.0",
+  "factorio_version": "1.0",
   "title": "auxiliary mechanisms",
   "author": "strayker",
   "description": "Some additional auxiliary mechanizms",
   "dependencies": [
-	"base >= 0.17",
+	"base >= 1.0",
 	"? bobplates", 
 	"? bobassembly"]
 }
