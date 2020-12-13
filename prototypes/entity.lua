@@ -82,7 +82,7 @@ end
 -- tesseracts
 local function createControlUnitPrototype(tier, corners, isFluid)
 	local fluidSuffix = ""
-	local energyUsage = math.ceil(10 * tier * tier) --MW
+	local energyUsage = math.ceil(2 * tier * tier) --MW
 	if isFluid then
 		fluidSuffix = "fluid-"
 	end
