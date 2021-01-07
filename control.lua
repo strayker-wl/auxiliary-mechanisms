@@ -6,7 +6,8 @@
  	energy
  	is_connected_to_electric_network
  	electric_network_statistics
- 	power_usage 
+ 	power_usage
+ создание призрака после убийства
 ]]--
 --=============================================--
 --====                 lib                  ===--
@@ -117,7 +118,7 @@ local function checkTesseracts()
     end
 end
 
-local function removeTesseract(id)
+local function removeTesseract(id, isDie)
     if id then
         local removeId = nil
         if global.tesseract.data[tostring(id)] then
@@ -125,15 +126,17 @@ local function removeTesseract(id)
         else
             for idx, data in pairs(global.tesseract.data) do
                 if data.bufferId == id then
-                    -- изем ид через буффер который пришел в эвенте
+                    -- ищем ид через буффер который пришел в эвенте
                     removeId = tostring(idx)
                     break
                 end
             end
         end
         if not removeId or removeId == 0 or removeId == "0" or removeId == "" then
-            warn("not found id")
-            checkTesseracts()
+            if not isDie then
+                warn("not found id")
+                checkTesseracts()
+            end
             return
         end
         global.tesseract.data[removeId] = nil -- удаляем данные тесеракта
@@ -496,7 +499,7 @@ local function createComponents(entity, params)
     return buffer, controlUnit
 end
 
-local function removeComponents(entity, isDie, force)
+local function removeComponents(entity, isDie)
     local object = entity.surface.find_entities_filtered({
         name = entityComponentDependence[entity.name],
         area = {
@@ -506,13 +509,9 @@ local function removeComponents(entity, isDie, force)
     })
     if object and object[1] and object[1].valid then
         if isBuffer(object[1].name) then
-            removeTesseract(object[1].unit_number)
+            removeTesseract(object[1].unit_number, isDie)
         end
-        if isDie then
-            object[1].die(force)
-        else
-            object[1].destroy()
-        end
+        object[1].destroy()
     end
 end
 
@@ -587,8 +586,8 @@ local function onEntityRemoved(event)
     end
 
     if isTesseract(entity.name) then
-        removeTesseract(entity.unit_number)
-        removeComponents(entity, false, nil)
+        removeTesseract(entity.unit_number, false)
+        removeComponents(entity, false)
         return
     end
 
@@ -601,7 +600,6 @@ local function onEntityRemoved(event)
 end
 
 local function onEntityDamaged(event)
-
     local entity = event.entity
 
     if not entity or not entity.valid then
@@ -611,10 +609,10 @@ local function onEntityDamaged(event)
     if isTesseract(entity.name) then
         if entity.health < 1 then
             if isBuffer(entity.name) then
-                removeTesseract(entity.unit_number)
+                removeTesseract(entity.unit_number, false)
             end
-            removeComponents(entity, true, event.force)
-            entity.die(event.force)
+            removeComponents(entity, true)
+            entity.destroy()
         end
     end
 end
@@ -928,7 +926,7 @@ local function onNthTickSend()
     end
     local sender = getTesseractData(senderId, "buffer")
     if not sender or not sender.valid then
-        removeTesseract(senderId)
+        removeTesseract(senderId, false)
         warn("detected and removed broken tesseract id=" .. senderId)
         return
     end
@@ -1035,7 +1033,7 @@ local function onNthTickSend()
                 end
             end
         else
-            removeTesseract(receiverId)
+            removeTesseract(receiverId, false)
             warn("detected and removed broken tesseract id=" .. receiverId)
         end
     end
