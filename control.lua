@@ -69,7 +69,7 @@ local function checkTesseracts()
     for id, data in pairs(global.tesseract.data) do
         if not (data.buffer and data.buffer.valid and data.controlUnit and data.controlUnit.valid) then
             global.tesseract.data[tostring(id)] = nil
-            warn("remove broken tesseract id=" .. id)
+            warn("ERR#01: remove broken tesseract id=" .. id)
         else
             if not data.bufferId or data.bufferId == 0 then
                 global.tesseract.data[tostring(id)].bufferId = data.buffer.unit_number
@@ -79,7 +79,7 @@ local function checkTesseracts()
     for id, data in pairs(global.tesseract.senders) do
         if not global.tesseract.data[tostring(id)] then
             global.tesseract.senders[tostring(id)] = nil
-            warn("remove broken sender id=" .. id)
+            warn("ERR#02: remove broken sender id=" .. id)
         end
     end
     local tempReceivers = {}
@@ -92,7 +92,7 @@ local function checkTesseracts()
     if tempReceivers and #tempReceivers and #tempReceivers > 0 then
         oldCount = #global.tesseract.receivers
         global.tesseract.receivers = tempReceivers
-        warn("fix receivers, old count=" .. oldCount .. "  new count=" .. #global.tesseract.receivers)
+        warn("ERR#03: fix receivers, old count=" .. oldCount .. "  new count=" .. #global.tesseract.receivers)
     end
     local tempQueue = {}
     for i, idx in ipairs(global.tesseract.queue) do
@@ -103,7 +103,7 @@ local function checkTesseracts()
     if tempQueue and #tempQueue and #tempQueue > 0 then
         oldCount = #global.tesseract.queue
         global.tesseract.queue = tempQueue
-        warn("fix queue, old count = " .. oldCount .. "  new count=" .. #global.tesseract.queue)
+        warn("ERR#04: fix queue, old count = " .. oldCount .. "  new count=" .. #global.tesseract.queue)
     end
 end
 
@@ -123,7 +123,7 @@ local function removeTesseract(id, isDie)
         end
         if not removeId or removeId == 0 or removeId == "0" or removeId == "" then
             if not isDie then
-                warn("not found id")
+                warn("ERR#05: not found id")
                 checkTesseracts()
             end
             return
@@ -194,7 +194,7 @@ local function pushToSender(id)
     end
     local time = getTesseractData(id, "time")
     if not time then
-        warn("time is not configured for this tesseract")
+        warn("ERR#06: time is not configured for this tesseract")
         return
     end
     global.tesseract.senders[tostring(id)] = game.tick + time * 60
@@ -208,12 +208,12 @@ end
 
 local function updateSender(id)
     if not global.tesseract.senders[tostring(id)] then
-        warn("not found sender")
+        warn("ERR#07: not found sender")
         return
     end
     local time = getTesseractData(id, "time")
     if not time then
-        warn("time is not configured for this tesseract")
+        warn("ERR#08: time is not configured for this tesseract")
         return
     end
     global.tesseract.senders[tostring(id)] = game.tick + time * 60
@@ -234,7 +234,7 @@ local function pushToReceivers(id)
     end
     local net = getTesseractData(id, "net")
     if not net then
-        warn("net is not configured for this tesseract")
+        warn("ERR#09: net is not configured for this tesseract: ")
         return
     end
     table.insert(global.tesseract.receivers, {
@@ -528,7 +528,7 @@ local function onEntityCreated(event)
         local buffer = isBufferGhostAtPoint(entity.surface, entity.position)
 
         if not (controlUnit and buffer) and not event.item then
-            warn("Broken tesseract in blueprint! Include both entities of tesseract.")
+            warn("ERR#10: Broken tesseract in blueprint! Include both entities of tesseract.")
             entity.destroy()
             return
         end
@@ -547,7 +547,7 @@ local function onEntityCreated(event)
         if buffer and controlUnit then
             pushTesseract(buffer, controlUnit)
         else
-            warn("Placing tesseract failed.")
+            warn("ERR#11: Placing tesseract failed.")
         end
         entity.destroy()
         return
@@ -563,7 +563,7 @@ local function onEntityCreated(event)
             pushTesseract(buffer, controlUnit)
         else
             buffer.destroy()
-            warn("Placing tesseract from blueprint failed.")
+            warn("ERR#12: Placing tesseract from blueprint failed.")
         end
     end
 end
@@ -615,7 +615,7 @@ local function notify(id, text, force)
         return
     end
     if not global.tesseract.data[tostring(id)] then
-        warn("not found entity")
+        warn("ERR#13: not found entity")
         return
     end
     local lastNotifyTick = getTesseractData(id, "lastNotifyTick")
@@ -644,12 +644,12 @@ local function loadGuiData(pid, entity)
     local id = entity.unit_number
     if not id then
         closeTesseractGui(pid)
-        warn("not found tesseract")
+        warn("ERR#14: not found tesseract")
         return
     end
     local player = game.players[pid]
     if not player.gui.left.tesseractGui then
-        warn("Tesseract GUI not found!")
+        warn("ERR#15: Tesseract GUI not found!")
         closeTesseractGui(pid)
         return
     end
@@ -665,7 +665,7 @@ local function loadGuiData(pid, entity)
     local tnet = getTesseractData(id, "net")
     local time = getTesseractData(id, "time")
     if not (tnet and time) then
-        --warn("Tesseract settings was broken")
+        --warn("ERR#16: Tesseract settings was broken")
         return
     end
     local anet = string.split(tnet, "_")
@@ -682,7 +682,7 @@ local function loadGuiData(pid, entity)
     setGuiTempData(pid, "net", net)
     player.gui.left.tesseractGui.table["tesseract.subnet"].text = subnet
     setGuiTempData(pid, "subnet", subnet)
-    player.gui.left.tesseractGui.table["tesseract.time"].text = time
+    player.gui.left.tesseractGui.table["tesseract.time"].text = tostring(time)
     setGuiTempData(pid, "time", time)
 end
 
@@ -699,6 +699,7 @@ local function openTesseractGui(pid, entity)
     frame.table.add { type = "textfield", name = "tesseract.subnet", numeric = true, allow_decimal = false, allow_negative = false }
     frame.table.add { type = "label", name = "time-lable", caption = { "tesseract-gui-time" } }
     frame.table.add { type = "textfield", name = "tesseract.time", numeric = true, allow_decimal = false, allow_negative = false }
+    frame.add { type = "label", name = "time-note-lable", caption = { "tesseract-gui-time-note" } }
     frame.add { type = "table", name = "buttons", column_count = 2 }
     frame.buttons.add { type = "button", name = "tesseract.save", caption = { "tesseract-gui-apply" } }
     setGuiTempData(pid, "entity", entity.unit_number)
@@ -714,10 +715,20 @@ local function saveGuiData(pid)
             getGuiTempData(pid, "worktype") and
             getGuiTempData(pid, "net") and
             getGuiTempData(pid, "subnet") and
-            getGuiTempData(pid, "time")
+            (getGuiTempData(pid, "time") or getGuiTempData(pid, "worktype") == 2)
     then
+        local time = getGuiTempData(pid, "time")
+        if not time then --для ресивера время не обязательно
+            if getGuiTempData(pid, "worktype") == 2 then
+                time = 1 -- чтобы не переписывать все условия устанавливаем 1 а не 0
+            else
+                warn("ERR#28: cant save tesseract data if its not full configured")
+                closeTesseractGui(pid)
+                return
+            end
+        end
         setTesseractData(id, "net", getGuiTempData(pid, "net") .. getGuiTempData(pid, "subnet"))
-        setTesseractData(id, "time", getGuiTempData(pid, "time"))
+        setTesseractData(id, "time", time)
         setTesseractData(id, "worktype", getGuiTempData(pid, "worktype"))
         if getGuiTempData(pid, "worktype") == 1 then
             pushToSender(id)
@@ -731,7 +742,7 @@ local function saveGuiData(pid)
         message("Tesseract settings saved")
         closeTesseractGui(pid)
     else
-        warn("cant save tesseract data if its not full configured")
+        warn("ERR#17: cant save tesseract data if its not full configured")
         closeTesseractGui(pid)
     end
 end
@@ -741,12 +752,12 @@ local function onClickTesseractGui(pid, fields)
     local player = game.players[pid]
     local id = getGuiTempData(pid, "entity")
     if id == nil then
-        warn("Tesseract not found!")
+        warn("ERR#18: Tesseract not found!")
         closeTesseractGui(pid)
         return
     end
     if not player.gui.left.tesseractGui then
-        warn("Tesseract GUI not found!")
+        warn("ERR#19: Tesseract GUI not found!")
         closeTesseractGui(pid)
         return
     end
@@ -824,7 +835,7 @@ end
 local function onGuiOpened(event)
     local pid = event.player_index
     if not pid then
-        warn("Not found player")
+        warn("ERR#20: Not found player")
     end
     closeTesseractGui(pid)
     if event.gui_type == defines.gui_type.entity
@@ -903,23 +914,37 @@ local function onNthTickSend()
     if not senderId then
         return
     end
-    local net = getTesseractData(senderId, "net")
-    if not net then
-        warn("no net")
-        return
-    end
-    local receivers = getReceiversByNet(net)
-    if not receivers or not #receivers or #receivers == 0 then
-        notify(senderId, "no target", false)
-        return
-    end
+    -- проверяем на валидность сендера
     local sender = getTesseractData(senderId, "buffer")
     if not sender or not sender.valid then
         removeTesseract(senderId, false)
-        warn("detected and removed broken tesseract id=" .. senderId)
+        warn("ERR#21: detected and removed broken tesseract id=" .. senderId)
         return
     end
+    -- проверяем что есть энергия
+    local senderControlUnit = getTesseractData(senderId, "controlUnit")
+    if senderControlUnit and senderControlUnit.valid then
+        if not senderControlUnit.is_connected_to_electric_network() then
+            return
+        end
+    else
+        removeTesseract(senderId, false)
+        warn("ERR#22: detected and removed broken tesseract id=" .. senderId)
+    end
+    -- если он пустой то дальше не идем
     if isEmpty(sender) then
+        return
+    end
+    -- проверяем что он в сети
+    local net = getTesseractData(senderId, "net")
+    if not net then
+        warn("ERR#24: no net")
+        return
+    end
+    -- собираем ресиверы в массив
+    local receivers = getReceiversByNet(net)
+    if not receivers or not #receivers or #receivers == 0 then
+        notify(senderId, "no target", false)
         return
     end
     local senderType = isFluid(sender)
@@ -929,101 +954,109 @@ local function onNthTickSend()
         local receiver = getTesseractData(receiverId, "buffer")
         if receiver and receiver.valid then
             local receiverType = isFluid(receiver)
-            if receiverType == senderType then
-                -- если оба жидкостные или оба вещевые
-                if senderType then
-                    --is fluid
-                    local senderFluidCount, senderCapacity, senderFluidName = getFluidCount(sender)
-                    if senderFluidCount ~= 0 and senderFluidName then
-                        --если есть что отправлять
-                        local receiverFluidCount, receiverCapacity, receiverFluidName = getFluidCount(receiver)
-                        if
-                        (
-                                (not receiverFluidName) --если в точке назначения ничего нету
-                                        or (receiverFluidName and senderFluidName == receiverFluidName) -- или есть тоже самое
-                        )
-                        then
-                            if receiverCapacity * 0.75 > receiverFluidCount then
-                                -- и в ресивере еще осталось место
-                                if isEmpty(receiver) then
-                                    receiver.clear_fluid_inside()
-                                end
-                                local temperature = sender.fluidbox[1].temperature
-                                local freeCount = receiverCapacity - receiverFluidCount
-                                local insertCount = 0
-                                local clearSender = false
-                                if freeCount < senderFluidCount then
-                                    insertCount = freeCount
+            if receiverType == senderType then -- если оба жидкостные или оба вещевые
+                -- проверяем что есть энергия
+                local receiverControlUnit = getTesseractData(receiverId, "controlUnit")
+                if receiverControlUnit and receiverControlUnit.valid then
+                    if receiverControlUnit.is_connected_to_electric_network() then
+                        if senderType then
+                            --is fluid
+                            local senderFluidCount, senderCapacity, senderFluidName = getFluidCount(sender)
+                            if senderFluidCount ~= 0 and senderFluidName then
+                                --если есть что отправлять
+                                local receiverFluidCount, receiverCapacity, receiverFluidName = getFluidCount(receiver)
+                                if
+                                (
+                                        (not receiverFluidName) --если в точке назначения ничего нету
+                                                or (receiverFluidName and senderFluidName == receiverFluidName) -- или есть тоже самое
+                                )
+                                then
+                                    if receiverCapacity * 0.75 > receiverFluidCount then
+                                        -- и в ресивере еще осталось место
+                                        if isEmpty(receiver) then
+                                            receiver.clear_fluid_inside()
+                                        end
+                                        local temperature = sender.fluidbox[1].temperature
+                                        local freeCount = receiverCapacity - receiverFluidCount
+                                        local insertCount = 0
+                                        local clearSender = false
+                                        if freeCount < senderFluidCount then
+                                            insertCount = freeCount
+                                        else
+                                            insertCount = senderFluidCount
+                                            clearSender = true
+                                        end
+                                        receiver.insert_fluid({
+                                            name = senderFluidName,
+                                            amount = insertCount,
+                                            temperature = temperature
+                                        })
+                                        if clearSender then
+                                            sender.clear_fluid_inside() -- очищаем буфер сендера
+                                        else
+                                            sender.remove_fluid({
+                                                name = senderFluidName,
+                                                amount = insertCount,
+                                                temperature = temperature
+                                            }) -- убираем из буфера сендера отправленное количество жидкости
+                                        end
+                                        updateReceiver(receiverData.idx) -- переносим ресивер в конец очереди
+                                        return -- выходим из цикла на первом же подходящем ресивере
+                                    end
                                 else
-                                    insertCount = senderFluidCount
-                                    clearSender = true
+                                    notify(senderId, "wrong fluid type in one of receivers ( id " .. receiverId .. " )", true)
                                 end
-                                receiver.insert_fluid({
-                                    name = senderFluidName,
-                                    amount = insertCount,
-                                    temperature = temperature
-                                })
-                                if clearSender then
-                                    sender.clear_fluid_inside() -- очищаем буфер сендера
-                                else
-                                    sender.remove_fluid({
-                                        name = senderFluidName,
-                                        amount = insertCount,
-                                        temperature = temperature
-                                    }) -- убираем из буфера сендера отправленное количество жидкости
-                                end
-                                updateReceiver(receiverData.idx) -- переносим ресивер в конец очереди
-                                return -- выходим из цикла на первом же подходящем ресивере
                             end
                         else
-                            notify(senderId, "wrong fluid type in one of receivers ( id " .. receiverId .. " )", true)
+                            -- is not fluid
+                            local senderItemCount, senderCapacity = getInventoryCount(sender)
+                            if senderItemCount ~= 0 then
+                                --если есть что отправлять
+                                local receiverItemCount, receiverCapacity = getInventoryCount(receiver)
+                                if receiverCapacity * 0.75 > receiverItemCount then
+                                    -- в ресивере еще есть место
+                                    local freeCount = receiverCapacity - receiverItemCount
+                                    local senderInventory = sender.get_inventory(defines.inventory.chest)
+                                    local content = senderInventory.get_contents()
+                                    local receiverInventory = receiver.get_inventory(defines.inventory.chest)
+                                    receiverInventory.sort_and_merge() -- все мержим в стаки
+                                    for name, count in pairs(content) do
+                                        local insertStackCount, stackSize = getStackCount(name, count)
+                                        local insertCount = 0
+                                        if insertStackCount <= freeCount then
+                                            -- если отправляемых предметов меньше чем свободного места в ресивере
+                                            insertCount = count -- отправляем все
+                                            freeCount = freeCount - insertStackCount -- и обновляем свободное место
+                                        else
+                                            insertCount = freeCount * stackSize -- считаем сколько предметов можем отправить
+                                            freeCount = 0 -- и указываем что места не осталось
+                                        end
+                                        receiverInventory.insert({ -- пихаем предметы в ресивер
+                                            name = name,
+                                            count = insertCount
+                                        })
+                                        senderInventory.remove({ -- и удаляем их из сендера
+                                            name = name,
+                                            count = insertCount
+                                        })
+                                        if freeCount == 0 then
+                                            break
+                                        end
+                                    end
+                                    updateReceiver(receiverData.idx) -- переносим ресивер в конец очереди
+                                    return -- выходим из цикла на первом же подходящем ресивере
+                                end
+                            end
                         end
                     end
                 else
-                    -- is not fluid
-                    local senderItemCount, senderCapacity = getInventoryCount(sender)
-                    if senderItemCount ~= 0 then
-                        --если есть что отправлять
-                        local receiverItemCount, receiverCapacity = getInventoryCount(receiver)
-                        if receiverCapacity * 0.75 > receiverItemCount then
-                            -- в ресивере еще есть место
-                            local freeCount = receiverCapacity - receiverItemCount
-                            local senderInventory = sender.get_inventory(defines.inventory.chest)
-                            local content = senderInventory.get_contents()
-                            local receiverInventory = receiver.get_inventory(defines.inventory.chest)
-                            receiverInventory.sort_and_merge() -- все мержим в стаки
-                            for name, count in pairs(content) do
-                                local insertStackCount, stackSize = getStackCount(name, count)
-                                local insertCount = 0
-                                if insertStackCount <= freeCount then
-                                    -- если отправляемых предметов меньше чем свободного места в ресивере
-                                    insertCount = count -- отправляем все
-                                    freeCount = freeCount - insertStackCount -- и обновляем свободное место
-                                else
-                                    insertCount = freeCount * stackSize -- считаем сколько предметов можем отправить
-                                    freeCount = 0 -- и указываем что места не осталось
-                                end
-                                receiverInventory.insert({ -- пихаем предметы в ресивер
-                                    name = name,
-                                    count = insertCount
-                                })
-                                senderInventory.remove({ -- и удаляем их из сендера
-                                    name = name,
-                                    count = insertCount
-                                })
-                                if freeCount == 0 then
-                                    break
-                                end
-                            end
-                            updateReceiver(receiverData.idx) -- переносим ресивер в конец очереди
-                            return -- выходим из цикла на первом же подходящем ресивере
-                        end
-                    end
+                    removeTesseract(receiverId, false)
+                    warn("ERR#25: detected and removed broken tesseract id=" .. receiverId)
                 end
             end
         else
             removeTesseract(receiverId, false)
-            warn("detected and removed broken tesseract id=" .. receiverId)
+            warn("ERR#27: detected and removed broken tesseract id=" .. receiverId)
         end
     end
 end
